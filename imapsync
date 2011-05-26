@@ -1672,6 +1672,7 @@ sub login_imap {
 
 	$imap->Authcallback(\&plainauth) if $authmech eq "PLAIN";
 	
+	$imap->Authcallback(\&xoauth) if $authmech eq "XOAUTH";
 
         if ($proxyauth) {
                 $imap->User($authuser);
@@ -1712,6 +1713,15 @@ sub plainauth() {
         my $string = sprintf("%s\x00%s\x00%s", $imap->User,
                             $imap->Authuser, $imap->Password);
         return encode_base64("$string", "");
+}
+
+
+sub xoauth() {
+		my $code = shift;
+		my $imap = shift;
+
+		my $string = sprintf("%s", $imap->Password);
+		return encode_base64("$string", "");
 }
 
 
@@ -2574,6 +2584,7 @@ sub copy_message {
 				$new_id = lastuid( $imap2, $h2_fold, $h2_uidguess ) ;
 			}
 			printf( "msg %s/%-19s copied to %s/%-10s\n", $h1_fold, "$h1_msg {$string_len}", $h2_fold, $new_id );
+			sleep 1;
 			$h2_uidguess++;
 			$total_bytes_transferred += $h1_size;
 			$nb_msg_transferred += 1;
