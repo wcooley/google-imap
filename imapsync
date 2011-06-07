@@ -526,6 +526,10 @@ use IO::File;
 
 use Test::More 'no_plan';
 
+# For XOAUTH
+use Net::OAuth;
+use URI::Escape;
+
 eval { require 'usr/include/sysexits.ph' };
 
 use constant {
@@ -1720,8 +1724,30 @@ sub xoauth() {
 		my $code = shift;
 		my $imap = shift;
 
-		my $string = sprintf("%s", $imap->Password);
-		return encode_base64("$string", "");
+		my @user_address = split '@', sprintf("%s", $imap->User);
+		my $secret = sprintf("%s", $imap->Password);
+		my $username = $user_address[0];
+		my $domain = $user_address[1];
+
+		my $url = 'https://mail.google.com/mail/b/'.$username.'@'.$domain.'/imap/';
+
+		my $oauth = Net::OAuth->request('consumer')->new(
+			consumer_key	 => $domain,
+			consumer_secret  => $secret,
+			request_url	  => $url,
+			request_method   => 'GET',
+			signature_method => 'HMAC-SHA1',
+			timestamp		=> time,
+			nonce			=> int(rand(99999999)),
+			extra_params => {
+				'xoauth_requestor_id' => $username.'@'.$domain,
+			},
+		);
+		$oauth->sign;
+		
+		my $sig = $oauth->to_authorization_header;
+		$sig =~ s/^OAuth/'GET '.$oauth->request_url.'?xoauth_requestor_id='.uri_escape($username.'@'.$domain)/e;
+		return encode_base64("$sig", "");
 }
 
 
