@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-import ldap, getpass
+import ldap
 
 class psuldap:
     def __init__(self, cacertdir="/etc/pki/CA/certs"):
@@ -9,10 +9,14 @@ class psuldap:
     
 
     def connect(self, ldapurl=None, userdn=None, password=None):
-        """Connects via LDAP, initalizes a TLS connection, and binds to the <ldapurl> as the user <userdn> with the supplied <password>."""
+        """Connects via LDAP, initalizes a TLS connection, and binds to the <ldapurl> as the user <userdn> with the supplied <password>. If userdn or password is None, do an anonymous bind."""
         self.conn = ldap.initialize(ldapurl)
         self.conn.start_tls_s()
-        self.conn.simple_bind_s(userdn, password)
+        if userdn == None or password == None:
+            self.conn.simple_bind_s()
+
+        else:
+            self.conn.simple_bind_s(userdn, password)
 
     
     def mod_attribute(self, dn, attrname, value):
@@ -48,12 +52,10 @@ class psuldap:
             ,attrlist
         )
 
+    def exists(self, searchfilter=None):
+        """Do you want a boolean value on whether or not a searchfilter will match? This is for you."""
+        if self.search(searchfilter=searchfilter, attrlist=["dn"]) == []:
+            return False
 
-if __name__ == "__main__":
-    ldapserver = raw_input("LDAP URL: ")
-    binduser = raw_input("Binding DN: ")
-    bindpw = getpass.getpass()
-    query = raw_input("LDAP Search Query: ")
-    ld = psuldap()
-    ld.connect(ldapurl = ldapserver, userdn = binduser, password = bindpw)
-    print ld.search(searchfilter = query)
+        else:
+            return True
