@@ -2,29 +2,30 @@
 
 import email
 import imaplib
-from pyparsing import Word, alphas, nums, printables
+from pyparsing import Word, alphas, nums, printables, ZeroOrMore
 
 class imapstat:
-    def __connect(
-        self
-        ,imapserver = None
-        ,adminuser = None
-        ,adminpassword = None
-        ,user = None
-    ):
-        """Establishes a connection to <imapserver>, using <adminuser>'s <adminpassword> to authenticate for <user>."""
-        authstring = "%s\x00%s\x00%s" % (user, adminuser, adminpassword)
+    def __init__(self, imapserver=None, adminuser=None, adminpassword=None):
+        """Sets parameters for the object: <imapserver>, <adminuser>, and <adminpassword>."""
+        self.imapserver = imapserver
+        self.adminuser = adminuser
+        self.adminpassword = adminpassword
 
-        self.imap = imaplib.IMAP4_SSL(imapserver)
+
+    def connect(self, user = None):
+        """Establishes a connection for <user>."""
+        authstring = "%s\x00%s\x00%s" % (user, self.adminuser, self.adminpassword)
+
+        self.imap = imaplib.IMAP4_SSL(self.imapserver)
         self.imap.authenticate("PLAIN", lambda x: authstring)
 
 
-    def __disconnect(self):
+    def disconnect(self):
         """Closes an established IMAP connection."""
         self.imap.logout()
 
 
-    def __mboxstat(self, mbox):
+    def mboxstat(self, mbox):
         """Sends an IMAP select against the named <mbox>, returning True if the command succeeds, False otherwise."""
         sele_ret, msgs_cnt = self.imap.select(mbox, readonly = True)
 
@@ -104,7 +105,7 @@ class imapstat:
         root = Word(alphas + '/')
         mboxname = Word(printables + ' ')
 
-        mbox_form = '(' + flags + ')' + '"' + root  + '"' + mboxname
+        mbox_form = '(' + ZeroOrMore(flags) + ')' + '"' + root  + '"' + mboxname
 
         mbox_parse = mbox_form.parseString
 
@@ -112,7 +113,7 @@ class imapstat:
 
         for raw_mbox in rawdata:
             try:
-                parsed.add(mbox_parse(raw_mbox)[6])
+                parsed.add(mbox_parse(raw_mbox).pop())
 
             except:
                 raise Exception("Error parsing %s" % raw_mbox)
@@ -136,7 +137,7 @@ class imapstat:
         ]
 
 
-    def __quotastat(self):
+    def quotastat(self):
         """Returns the current user's IMAP quota as the tuple: (quota_used, quota)."""
         quot_ret, quota_raw = self.imap.getquotaroot("INBOX")
 
@@ -146,7 +147,7 @@ class imapstat:
             raise Exception("Server returned invalid quota data")
 
 
-    def __mboxlist(self):
+    def mboxlist(self):
         """Returns a verified (can we IMAP select it?) list of a user's mailboxes."""
         mbox_ret, mbox_raw = self.imap.list()
         subm_ret, subm_raw = self.imap.lsub()
@@ -154,19 +155,19 @@ class imapstat:
         list_raw = (mbox_raw + subm_raw)
 
         if (mbox_ret, subm_ret) == ("OK", "OK"):
-            mbox_list = parsemboxlist(list_raw)
+            mbox_list = self.parsemboxlist(list_raw)
 
         else:
             raise Exception("Server returned invalid response to list command")
 
-        return [x for x in mbox_list if self.__mboxstat(x)]
+        return [x for x in mbox_list if self.mboxstat(x)]
 
 
     def bigmessages(self, user, mbox_list, lower_bound):
         "For a given <user>, and a <mbox_list> of that user's mailboxes, searches each mailbox for messages that exceed <lower_bound> bytes in size, and returns the headers of those messages in a dict of lists, where each key resolves to a list of dicts, each of which contains a separate message header."""
         msg_list = dict()
 
-        self.__connect(user)
+        self.connect(user)
         
         for mbox in mbox_list:
             try:
@@ -188,27 +189,21 @@ class imapstat:
             except:
                 print "Error processing mailbox %s" % mbox
 
-        self.__disconnect()
+        self.disconnect()
 
         return msg_list
 
 
     def stat(self, user):
         """For a given <user>, returns a dict containing a list of that user's accessible mailboxes, that user's quota, and how much of that quota is currently used."""
-        mbox_form = Word(printables) + Word(printables) + Word(printables + ' ')
-        quota_form = Word(alphas) + '(' + Word(alphas) + Word(nums) + Word(nums) + ')'
-
-        mbox_parse = mbox_form.parseString
-        quota_parse = quota_form.parseString
-
         mbox_list = list()
         quota = 0
         quota_used = 0
 
-        self.__connect(user)
-        quota_used, quota = self.__quotastat()
-        mbox_list = self.__mboxlist()
-        self.__disconnect()
+        self.connect(user)
+        quota_used, quota = self.quotastat()
+        mbox_list = self.mboxlist()
+        self.disconnect()
 
         return {"mbox_list":mbox_list,"quota":quota,"quota_used":quota_used}
 
