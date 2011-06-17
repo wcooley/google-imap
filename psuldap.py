@@ -1,9 +1,7 @@
-#!/usr/bin/python
-
 import ldap
 
 class psuldap:
-    def __init__(self, cacertdir="/etc/pki/CA/certs"):
+    def __init__(self, cacertdir="/opt/google-imap/cacert"):
         """Initializes psuldap object, which is a wrapper around the standard ldap library--<cacertdir> is the directory where the CA certs can be found."""
         ldap.set_option(ldap.OPT_X_TLS_CACERTDIR, cacertdir)
     
@@ -11,11 +9,11 @@ class psuldap:
     def connect(self, ldapurl=None, userdn=None, password=None):
         """Connects via LDAP, initalizes a TLS connection, and binds to the <ldapurl> as the user <userdn> with the supplied <password>. If userdn or password is None, do an anonymous bind."""
         self.conn = ldap.initialize(ldapurl)
-        self.conn.start_tls_s()
         if userdn == None or password == None:
             self.conn.simple_bind_s()
 
         else:
+            self.conn.start_tls_s()
             self.conn.simple_bind_s(userdn, password)
 
     
