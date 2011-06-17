@@ -1,5 +1,3 @@
-#!/usr/bin/python
-
 import email
 import imaplib
 from pyparsing import Word, alphas, nums, printables, ZeroOrMore

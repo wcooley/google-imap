@@ -1,4 +1,3 @@
-#!/usr/bin/python
 import gdata.apps.service
 
 class domaininfo:
