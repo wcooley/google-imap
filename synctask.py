@@ -114,4 +114,4 @@ def imapsync(ldapuri=None, memcaches=None, imapserver=None, adminuser=None, plev
     if cache.cas(cachekey, endstate) != True: # Whoops, something changed. Abort.
         raise Exception("Cache inconsistency error for user %s." % user)
 
-    return (user, endstate)
+    return (user, exitstatus)
