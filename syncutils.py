@@ -6,7 +6,7 @@ from time import sleep, time
 import memcache
 
 class usersync:
-    def __init__(self, plevel="test", dryrun=True, runlimit=600, ldapuri=None, memcaches=None, imapserver=None, adminuser=None):
+    def __init__(self, plevel="test", dryrun=True, runlimit=86400, ldapuri=None, memcaches=None, imapserver=None, adminuser=None):
         """Initializes a usersync object. Plevel is either test or prod, dryrun is a boolean and runlimit is an integer. Uses memcaches, provided as a list, [host:port,...], for storing task state data. Imapserver and adminuser are for the local (non-Google side). Ldapuri is a uri for our LDAP directory."""
         self.plevel = plevel
         self.dryrun = dryrun

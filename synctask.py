@@ -6,7 +6,7 @@ import shlex, subprocess
 import memcache
 
 @task(ignore_result=True)
-def imapsync(ldapuri=None, memcaches=None, imapserver=None, adminuser=None, plevel="test", dryrun=True, runlimit=1800, user=None):
+def imapsync(ldapuri=None, memcaches=None, imapserver=None, adminuser=None, plevel="test", dryrun=True, runlimit=86400, user=None):
     imapsync_dir = "/opt/google-imap/"
     imapsync_cmd = imapsync_dir + "imapsync"
     cyrus_pf = imapsync_dir + "cyrus.pf"
