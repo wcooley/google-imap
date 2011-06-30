@@ -645,6 +645,7 @@ $releasecheck = defined($releasecheck) ? $releasecheck : 1;
 my $warn_release = ($releasecheck) ? check_last_release() : '';
 
 $SIG{ INT } = \&catch_exit ;
+$SIG{ TERM } = \&catch_exit ;
 
 # default values
 
@@ -1458,6 +1459,9 @@ sub ask_for_password {
 sub catch_exit {
 	my $signame = shift ;
 	print "\nGot a SIG$signame!\n" ;
+	# This is kind of gnarly but it's best to close the connection before we just go *poof*
+	$imap1->logout() or print"\nCouldn't Logout IMAP1!\n";
+	$imap2->logout() or print"\nCouldn't Logout IMAP2!\n";
 	stats(  ) ;
 	exit_clean(  ) ;
 }
