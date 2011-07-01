@@ -70,7 +70,8 @@ def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserv
     elif cachestate["status"] != "queued" or cachestate["taskid"] != imapsync.request.id:
         raise Exception("Cache inconsistency error for user %s." % user)
 
-    # We're good to go. Let's set the cache with our new state.  runstate = {
+    # We're good to go. Let's set the cache with our new state.
+    runstate = {
         "status":"running"
         ,"timestamp":int(time())
         ,"taskid":imapsync.request.id
