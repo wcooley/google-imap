@@ -10,7 +10,7 @@ def imapsync(ldapuri=None, memcaches=None, imapserver=None, adminuser=None, plev
     imapsync_dir = "/opt/google-imap/"
     imapsync_cmd = imapsync_dir + "imapsync"
     cyrus_pf = imapsync_dir + "cyrus.pf"
-    extra_opts = "--delete2"
+    extra_opts = "--noexpunge"
 
     if dryrun:
         extra_opts = extra_opts + " --dry" 
