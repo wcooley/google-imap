@@ -11,6 +11,7 @@ def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserv
     imapsync_cmd = imapsync_dir + "imapsync"
     cyrus_pf = imapsync_dir + "cyrus.pf"
     extra_opts = "--noexpunge"
+    exitstatus = "premature"
 
     if dryrun:
         extra_opts = extra_opts + " --dry" 
@@ -51,7 +52,7 @@ def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserv
     for (dn, result) in mailhostsearch:
         if result.has_key("mailHost"):
             if result["mailHost"] == "gmx.pdx.edu":
-                if nosync_cache.set(cachekey,{"status":"nosync"}) != True
+                if nosync_cache.set(cachekey,{"status":"nosync"}) != True:
                     raise Exception("Could not set %s in nosync_cache." % cachekey)
 
                 exitstatus = "nosync"
@@ -69,8 +70,7 @@ def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserv
     elif cachestate["status"] != "queued" or cachestate["taskid"] != imapsync.request.id:
         raise Exception("Cache inconsistency error for user %s." % user)
 
-    # We're good to go. Let's set the cache with our new state.
-    runstate = {
+    # We're good to go. Let's set the cache with our new state.  runstate = {
         "status":"running"
         ,"timestamp":int(time())
         ,"taskid":imapsync.request.id
