@@ -6,7 +6,7 @@ import shlex, subprocess
 import memcache
 
 @task(ignore_result=True)
-def imapsync(ldapuri=None, memcaches=None, imapserver=None, adminuser=None, plevel="test", dryrun=True, runlimit=86400, user=None):
+def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserver=None, adminuser=None, plevel="test", dryrun=True, runlimit=86400, user=None):
     imapsync_dir = "/opt/google-imap/"
     imapsync_cmd = imapsync_dir + "imapsync"
     cyrus_pf = imapsync_dir + "cyrus.pf"
@@ -30,24 +30,39 @@ def imapsync(ldapuri=None, memcaches=None, imapserver=None, adminuser=None, plev
         raise Exception("Plevel must be test or prod.")
 
     command = imapsync_cmd + " --pidfile /tmp/imapsync-" + user + ".pid --host1 " + imapserver + " --port1 993 --user1 " + user + " --authuser1 " + adminuser + " --passfile1 " + cyrus_pf + " --host2 imap.gmail.com --port2 993 --user2 " + user + "@" + google_domain + " --passfile2 " + google_pf + " --ssl1 --ssl2 --maxsize 26214400 --authmech1 PLAIN --authmech2 XOAUTH -sep1 '/' --exclude '^Shared Folders' " + extra_opts
-    directory = psuldap()   # Our LDAP handle
+
+    cache = memcache.Client(servers=state_memcaches)            # System state
+    nosync_cache = memcache.Client(servers=nosync_memcaches)    # Users not-to-sync
+
+    cachekey = "(%s,auto)" % user
+
+    nosyncstate = nosync_cache.get(cachekey)
+
+    if nosyncstate != None:     # If the key exists in this cache, skip the sync.
+        exitstatus = "nosync"
+
+    directory = psuldap()       # Our LDAP handle
     directory.connect(ldapuri)  # Anonymous bind
 
     # Search for the user's mailHost attribute.
     mailhostsearch = directory.search(searchfilter="(uid=%s)" % user, attrlist=["mailHost"]) 
 
-    # Loop through the search results. If any them match gmx.pdx.edu, abort.
+    # Loop through the search results. If any them match gmx.pdx.edu, set in the nosync cache.
     for (dn, result) in mailhostsearch:
         if result.has_key("mailHost"):
             if result["mailHost"] == "gmx.pdx.edu":
-                raise Exception("User %s already migrated to Google." % user)
+                if nosync_cache.set(cachekey,{"status":"nosync"}) != True
+                    raise Exception("Could not set %s in nosync_cache." % cachekey)
 
-    cache = memcache.Client(servers=memcaches)  # Our memcache handle
-    cachekey = "(%s,auto)" % user
+                exitstatus = "nosync"
 
+    if exitstatus == "nosync":  # User has been, or is newly added to nosync list. Let's exit.
+        return (user, exitstatus)
+
+    # We can continue.
     cachestate = cache.gets(cachekey)
 
-    if cachestate == None: # Maybe the cache has been cleared. Continue.
+    if cachestate == None:  # Maybe the cache has been cleared. Continue.
         pass
 
     # Well, it looks like the cache has another task's data for this user. Abort.
@@ -84,11 +99,12 @@ def imapsync(ldapuri=None, memcaches=None, imapserver=None, adminuser=None, plev
     if (syncprocess.poll() == None):
         syncprocess.terminate()     # Send SIGTERM
         syncprocess.communicate()   # Read stdin/out, and wait for process to terminate
-        exitstatus = "timeout"
+        exitstatus = "outtatime"
 
     else:
         if syncprocess.returncode == 0:
             exitstatus = "ok"
+
         else:
             exitstatus = "error_%d" % syncprocess.returncode
 

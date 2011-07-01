@@ -6,12 +6,13 @@ from time import sleep, time
 import memcache
 
 class usersync:
-    def __init__(self, plevel="test", dryrun=True, runlimit=86400, ldapuri=None, memcaches=None, imapserver=None, adminuser=None):
-        """Initializes a usersync object. Plevel is either test or prod, dryrun is a boolean and runlimit is an integer. Uses memcaches, provided as a list, [host:port,...], for storing task state data. Imapserver and adminuser are for the local (non-Google side). Ldapuri is a uri for our LDAP directory."""
+    def __init__(self, plevel="test", dryrun=True, runlimit=86400, ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserver=None, adminuser=None):
+        """Initializes a usersync object. Plevel is either test or prod, dryrun is a boolean and runlimit is an integer. Uses state_memcaches, provided as a list, [host:port,...], for storing task state data. Imapserver and adminuser are for the local (non-Google side). Ldapuri is a uri for our LDAP directory."""
         self.plevel = plevel
         self.dryrun = dryrun
         self.runlimit = runlimit
-        self.memcaches = memcaches
+        self.state_memcaches = state_memcaches
+        self.nosync_memcaches = nosync_memcaches
         self.imapserver = imapserver
         self.adminuser = adminuser
         self.ldapuri = ldapuri
@@ -61,7 +62,7 @@ class usersync:
 
     def launchuser(self, user=None):
         """Submits a asynchronous task for a given user, first checking memcache to see if there are extent tasks--if there are, it returns None. If clear, it returns the task id of the queued task."""
-        cache = memcache.Client(servers=self.memcaches)
+        cache = memcache.Client(servers=self.state_memcaches)
         cachekey = "(%s,auto)" % user
 
         try:    # If we can't contact the cache, we're in trouble.
@@ -77,7 +78,8 @@ class usersync:
                     ,plevel=self.plevel
                     ,dryrun=self.dryrun
                     ,runlimit=self.runlimit
-                    ,memcaches=self.memcaches
+                    ,state_memcaches=self.state_memcaches
+                    ,nosync_memcaches=self.nosync_memcaches
                     ,imapserver=self.imapserver
                     ,adminuser=self.adminuser
                     ,user=user
