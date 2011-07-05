@@ -2536,7 +2536,14 @@ sub copy_message {
 	my $h1_size  = $h1_fir_ref->{$h1_msg}->{"RFC822.SIZE"} || '' ;
 	my $h1_flags = $h1_fir_ref->{$h1_msg}->{"FLAGS"} || '' ;
 	my $h1_idate = $h1_fir_ref->{$h1_msg}->{"INTERNALDATE"} || '' ;
-	
+
+    # Set if the original message is marked deleted (not yet expunged)
+    my $deleted = 0;
+    if ( $h1_flags =~ "\\Deleted" ) {
+		$debug and print "Skipping deleted message.\n";
+        $deleted = 1;
+    }
+
 	return() if size_filtered( $h1_size, $h1_msg, $h1_fold, $h2_fold  ) ;
 	
 	my $string;
@@ -2594,7 +2601,7 @@ sub copy_message {
 	$debug and print "msg $h1_fold/$h1_msg date [$h1_date] flags [$h1_flags] size [$h1_size]\n";
 	$h1_date = undef if ($h1_date eq "");
 	
-	unless ($dry) {
+	unless ($dry || $deleted) {
 		$max_msg_size_in_bytes = max($h1_size, $max_msg_size_in_bytes);
 		$new_id = $imap2->append_string($h2_fold, $string, $h1_flags, $h1_date);
 		unless($new_id){
