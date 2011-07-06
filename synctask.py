@@ -51,11 +51,12 @@ def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserv
     # Loop through the search results. If any them match gmx.pdx.edu, set in the nosync cache.
     for (dn, result) in mailhostsearch:
         if result.has_key("mailHost"):
-            if result["mailHost"] == "gmx.pdx.edu":
-                if nosync_cache.set(cachekey,{"status":"nosync"}) != True:
-                    raise Exception("Could not set %s in nosync_cache." % cachekey)
+            for mailhost in result["mailHost"]:
+                if mailhost == "gmx.pdx.edu":
+                    if nosync_cache.set(cachekey,{"status":"nosync"}) != True:
+                        raise Exception("Could not set %s in nosync_cache." % cachekey)
 
-                exitstatus = "nosync"
+                    exitstatus = "nosync"
 
     if exitstatus == "nosync":  # User has been, or is newly added to nosync list. Let's exit.
         return (user, exitstatus)
