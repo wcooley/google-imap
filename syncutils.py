@@ -69,9 +69,24 @@ class usersync:
             userstate = cache.gets(cachekey)
 
         except:
-            return None
+            return {"submitted":False,"reason":"cache fetch error"}
 
-        if userstate == None or userstate["status"] == "complete": # No task or complete, ready to go.
+        if userstate == None:
+            proceed = True
+
+        elif userstate["status"] == "complete":
+            if userstate["returned"] == "ok":
+                proceed = False
+                reason = userstate["status"]
+
+            else:
+                proceed = True
+
+        else:
+            proceed = False
+            reason = userstate["status"]
+
+        if proceed:
             try:
                 task = imapsync.delay(
                     ldapuri=self.ldapuri
@@ -86,36 +101,26 @@ class usersync:
                 )
 
             except: # Problem launching the process? Return False.
-                return None
+                return {"submitted":False,"reason":"task submission error"}
 
             cachedata = {"status":"queued", "timestamp":int(time()), "taskid":task.task_id}
 
             if cache.cas(cachekey, cachedata) == True:   # Return the task_id
-                return task.task_id
+                return {"submitted":True,"taskid":task.task_id}
 
             else: # We had some trouble with the cache. Revoke the process and return None.
                 task.revoke()   # If this throws an exception, we have problems.
+                return {"submitted":False,"reason":"cache cas error"}
 
         else:
-            return None
+            return {"submitted":False,"reason":reason}
 
 
     def launchgroup(self, interval=0.5):
         """Launches the tasksets created using populate(). Interval is the time between submissions."""
-        self.jobs = list()
-
         for userlist in self.userlists:
-            for username in userlist:
-                taskid = self.launchuser(user=username)
-
-                if taskid == None:
-                    print("Submission NOT OK for user: %s" % username)
-
-                else:
-                    print("Submission OK for user: %s. Task ID: %s" % (username, taskid))
-
-                self.jobs.append((username,taskid))
-
-                sleep(interval)
-
-        print("Done!")
+            for user in userlist:
+                launchstatus = self.launchuser(user=user)
+                if launchstatus["submitted"] == True:
+                    print("Task ID for user %s: %s" % (user, launchstatus["taskid"]))
+                    sleep(interval)
