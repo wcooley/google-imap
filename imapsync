@@ -1459,9 +1459,6 @@ sub ask_for_password {
 sub catch_exit {
 	my $signame = shift ;
 	print "\nGot a SIG$signame!\n" ;
-	# This is kind of gnarly but it's best to close the connection before we just go *poof*
-	$imap1->logout() or print"\nCouldn't Logout IMAP1!\n";
-	$imap2->logout() or print"\nCouldn't Logout IMAP2!\n";
 	stats(  ) ;
 	exit_clean(  ) ;
 }
@@ -2601,7 +2598,7 @@ sub copy_message {
 	$debug and print "msg $h1_fold/$h1_msg date [$h1_date] flags [$h1_flags] size [$h1_size]\n";
 	$h1_date = undef if ($h1_date eq "");
 	
-	unless ($dry || $deleted) {
+	unless ($dry or $deleted) {
 		$max_msg_size_in_bytes = max($h1_size, $max_msg_size_in_bytes);
 		$new_id = $imap2->append_string($h2_fold, $string, $h1_flags, $h1_date);
 		unless($new_id){
