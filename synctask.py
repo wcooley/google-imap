@@ -10,9 +10,10 @@ def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserv
     imapsync_dir = "/opt/google-imap/"
     imapsync_cmd = imapsync_dir + "imapsync"
     cyrus_pf = imapsync_dir + "cyrus.pf"
-    whitespace_cleanup = "--regextrans2 's/[ ]+/ /g' --regextrans2 's/\s+$//g' --regextrans2 's/\s+(?=\/)//g' --regextrans2 's/^\s+//g' --regextrans2 's/(?=\/)\s+//g'"
-    folder_cases = "--regextrans2 's/^drafts$/alt-drafts/' --regextrans2 's/^trash$/alt-trash/' --regextrans2 's/^sent$/alt-sent/'"
-    extra_opts = "--noexpunge"
+    exclude_list = "'^Shared Folders|^mail/|^Junk$|^junk$|^JUNK$'"
+    whitespace_cleanup = " --regextrans2 's/[ ]+/ /g' --regextrans2 's/\s+$//g' --regextrans2 's/\s+(?=\/)//g' --regextrans2 's/^\s+//g' --regextrans2 's/(?=\/)\s+//g'"
+    folder_cases = " --regextrans2 's/^drafts$/drafts2/' --regextrans2 's/^trash$/trash2/' --regextrans2 's/^sent$/sent2/' --regextrans2 's/^sent-mail$/sent-mail2/' --regextrans2 's/^templates$/templates2/'"
+    extra_opts = " --delete2 --delete2folders"
     exitstatus = "premature"
 
     if dryrun:
@@ -32,7 +33,7 @@ def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserv
     else:
         raise Exception("Plevel must be test or prod.")
 
-    command = imapsync_cmd + " --pidfile /tmp/imapsync-" + user + ".pid --host1 " + imapserver + " --port1 993 --user1 " + user + " --authuser1 " + adminuser + " --passfile1 " + cyrus_pf + " --host2 imap.gmail.com --port2 993 --user2 " + user + "@" + google_domain + " --passfile2 " + google_pf + " --ssl1 --ssl2 --maxsize 26214400 --authmech1 PLAIN --authmech2 XOAUTH -sep1 '/' --exclude '^Shared Folders' " + folder_cases + " " + whitespace_cleanup + " " + extra_opts
+    command = imapsync_cmd + " --pidfile /tmp/imapsync-" + user + ".pid --host1 " + imapserver + " --port1 993 --user1 " + user + " --authuser1 " + adminuser + " --passfile1 " + cyrus_pf + " --host2 imap.gmail.com --port2 993 --user2 " + user + "@" + google_domain + " --passfile2 " + google_pf + " --ssl1 --ssl2 --maxsize 26214400 --authmech1 PLAIN --authmech2 XOAUTH -sep1 '/' --exclude " + exclude_list + folder_cases + whitespace_cleanup + extra_opts
 
     cache = memcache.Client(servers=state_memcaches)            # System state
     nosync_cache = memcache.Client(servers=nosync_memcaches)    # Users not-to-sync
