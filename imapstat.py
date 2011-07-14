@@ -102,7 +102,7 @@ class imapstat:
         >>> ims.parsemboxlist(bad)
         Traceback (most recent call last):
             ...
-        Exception: Error parsing ('(\\HasNoChildren) "/" {34}', 'Other Users/hyndlatest/foo "quote"')
+        Exception: Error parsing ('(\\\\HasNoChildren) "/" {34}', 'Other Users/hyndlatest/foo "quote"')
         """
         flags = Word(alphas + '\\')
         root = Word(alphas + '/')
@@ -119,7 +119,7 @@ class imapstat:
                 parsed.add(mbox_parse(raw_mbox).pop())
 
             except:
-                raise Exception("Error parsing %s" % raw_mbox)
+                raise Exception("Error parsing %s" % str(raw_mbox))
 
         return list(parsed)
 
