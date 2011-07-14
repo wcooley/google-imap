@@ -6,7 +6,7 @@ from time import sleep, time
 import memcache
 
 class usersync:
-    def __init__(self, plevel="test", dryrun=True, runlimit=86400, ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserver=None, adminuser=None):
+    def __init__(self, plevel="test", dryrun=True, runlimit=7200, ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserver=None, adminuser=None):
         """Initializes a usersync object. Plevel is either test or prod, dryrun is a boolean and runlimit is an integer. Uses state_memcaches, provided as a list, [host:port,...], for storing task state data. Imapserver and adminuser are for the local (non-Google side). Ldapuri is a uri for our LDAP directory."""
         self.plevel = plevel
         self.dryrun = dryrun
@@ -75,9 +75,9 @@ class usersync:
             proceed = True
 
         elif userstate["status"] == "complete":
-            if userstate["returned"] == "ok":
+            if userstate["returned"] == "ok" or userstate["returned"] == "error_255":
                 proceed = False
-                reason = userstate["status"]
+                reason = userstate["returned"]
 
             else:
                 proceed = True
@@ -105,7 +105,7 @@ class usersync:
 
             cachedata = {"status":"queued", "timestamp":int(time()), "taskid":task.task_id}
 
-            if cache.cas(cachekey, cachedata) == True:   # Return the task_id
+            if cache.cas(cachekey, cachedata, time=3600) == True:   # Return the task_id
                 return {"submitted":True,"taskid":task.task_id}
 
             else: # We had some trouble with the cache. Revoke the process and return None.
@@ -122,5 +122,8 @@ class usersync:
             for user in userlist:
                 launchstatus = self.launchuser(user=user)
                 if launchstatus["submitted"] == True:
-                    print("Task ID for user %s: %s" % (user, launchstatus["taskid"]))
+                    print("user %s : task id %s" % (user, launchstatus["taskid"]))
                     sleep(interval)
+                elif launchstatus["reason"] == "ok" or launchstatus["reason"] == "error_255":
+                    print("user %s : %s" % (user, launchstatus["reason"]))
+                    userlist.remove(user)

@@ -10,10 +10,10 @@ def imapsync(ldapuri=None, state_memcaches=None, nosync_memcaches=None, imapserv
     imapsync_dir = "/opt/google-imap/"
     imapsync_cmd = imapsync_dir + "imapsync"
     cyrus_pf = imapsync_dir + "cyrus.pf"
-    exclude_list = "'^Shared Folders|^mail/|^Junk$|^junk$|^JUNK$'"
+    exclude_list = "'^Shared Folders|^mail/|^Junk$|^junk$|^JUNK$|^Spam$|^spam$|^SPAM$'"
     whitespace_cleanup = " --regextrans2 's/[ ]+/ /g' --regextrans2 's/\s+$//g' --regextrans2 's/\s+(?=\/)//g' --regextrans2 's/^\s+//g' --regextrans2 's/(?=\/)\s+//g'"
-    folder_cases = " --regextrans2 's/^drafts$/drafts2/' --regextrans2 's/^trash$/trash2/' --regextrans2 's/^sent$/sent2/' --regextrans2 's/^sent-mail$/sent-mail2/' --regextrans2 's/^templates$/templates2/'"
-    extra_opts = " --delete2 --delete2folders"
+    folder_cases = " --regextrans2 's/^drafts$/migrated-drafts/i' --regextrans2 's/^trash$/migrated-trash/i' --regextrans2 's/^sent$/migrated-sent/i' --regextrans2 's/^sent-mail$/migrated-sent-mail/i' --regextrans2 's/^templates$/migrated-templates/i'"
+    extra_opts = " --delete2 --delete2folders --fast"
     exitstatus = "premature"
 
     if dryrun:
