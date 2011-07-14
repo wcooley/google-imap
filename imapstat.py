@@ -98,6 +98,11 @@ class imapstat:
           File "imapstat.py", line 98, in parsemboxlist
             raise Exception("Error parsing %s" % raw_mbox)
         Exception: Error parsing (\Noinferiors) "/\\\\\\\\\" "INBOX"
+        >>> bad = [('(\\HasNoChildren) "/" {34}', 'Other Users/hyndlatest/foo "quote"')]
+        >>> ims.parsemboxlist(bad)
+        Traceback (most recent call last):
+            ...
+        Exception: Error parsing ('(\\HasNoChildren) "/" {34}', 'Other Users/hyndlatest/foo "quote"')
         """
         flags = Word(alphas + '\\')
         root = Word(alphas + '/')
